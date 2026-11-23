@@ -18,3 +18,7 @@ competition.prod.yaml
 # CDK output.
 cdk.out/
 cdk.context.json
+
+# Local secrets (never commit)
+.env
+.env.local
