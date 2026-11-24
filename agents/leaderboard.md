@@ -17,8 +17,18 @@
 ## What we take from it
 
 - **Our first submission tied the starter.** It was the Cursor branch's dual-position lens (`cursor/optimized-inkling-lens-v1-*`), which scored 0.90 on the 10 practice questions and 0.660 on the hidden sets. Practice gains do not carry over, so measure on our own dev set (`research/`).
-- **There is a lot of noise.** Six entries read exactly the starter's visits and score 0.654–0.724. Their lenses may differ, but leaderboard differences of about 0.03 should not be trusted.
+- **Run-to-run noise is small, so the lens is what matters.** Five entries that look like the unchanged starter (same visits) score 0.654–0.668, about ±0.007. Numericus Group reads the same visits and scores 0.724, so its *lens* adds about 6 points. Visit choice alone does not explain the top scores.
+- **The starter's profile is A 0.66–0.68, B 0.53–0.56, C 0.75–0.78.**
 - **Dataset B is where entries differ** (0.54–0.81). Dataset A ranges 0.58–0.73. Dataset C is about 0.78 for nearly everyone. Each dataset holds one family of questions (`evaluator/evaluate.py` requires it).
+- **Dataset A breaks easily.** These entries dropped A to 0.39–0.58 while lifting B or C:
+  - our dual-position entry (A 0.58);
+  - waka.mx's third entry (A 0.46, C 0.84);
+  - JB's first (0.46) and janinja's first (0.41);
+  - waterloo, which reads a single visit, 7 (A 0.39).
+
+  Our guess is that A's intermediate is read best at the official position, and moving or blending positions costs A.
+- **Dataset B gains the most.** The best entries move B from 0.56 to 0.70–0.81 (janinja 0.81, Phoenix 0.74). It is probably the family whose intermediate the starter misses, such as two-hop or computed questions.
+- **Fewer readouts can work.** Srujun scores 0.723 with 8, Neutrox 0.717 with 7, and interpretune went from 0.654 to 0.680 with 6. A readout that votes for a wrong option raises the bar, so dropping weak visits helps.
 - **Visits 43–46 are close to universal**, and entries reading them score higher. The top entry adds early and mid-pass visits (9, 20, 22, 26, 37, 38). This is a hint only: it doesn't say which lens or position those entries use.
 - **Run times are 205–1675 s** for the three datasets together, against a 2700 s limit.
 

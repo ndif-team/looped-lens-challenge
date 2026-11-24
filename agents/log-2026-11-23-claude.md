@@ -18,7 +18,7 @@ Branch `version1`, from `main` at 6668f34. All work below is on that branch.
 ## Found
 
 - **Our first leaderboard submission scored 0.660,** tied with the starter. It was the Cursor branch's dual-position lens, which scored 0.90 on practice.
-- **Leaderboard noise is about ±0.035** for the starter's visits.
+- **Leaderboard noise is small** (about ±0.007 for the unchanged starter); the lens, not the visits, separates the top entries. See leaderboard.md.
 - **Plain-format prompts read at the subject token,** not at the final `.`.
 
 ## Open
