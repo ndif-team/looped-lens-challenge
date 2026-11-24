@@ -22,3 +22,6 @@ cdk.context.json
 # Local secrets (never commit)
 .env
 .env.local
+
+# Our own dev questions, activations and runs
+research/data/
