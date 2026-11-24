@@ -1,0 +1,27 @@
+# 2026-11-23: Claude Code, session "looped-lense-challenge-planning"
+
+Branch `version1`, from `main` at 6668f34. All work below is on that branch.
+
+## Done
+
+- **Read the sources:** the README, AGENTS.md, the nnsight walkthrough and remote-execution pages, the tutorials, the challenge page, the model card, the nnsight blog on Inkling 2 Mini, and the model's modeling code. What we learned is in [findings.md](findings.md).
+- **Practice baseline:** the starter scores 0.60 locally, 6 of 10. Recall questions pass; arithmetic and calendar questions fail.
+- **A local run stalled once:** `submit.py --local` sat for 36 minutes in an SSL read from NDIF after writing its readouts. Reruns finished in 47–59 s, so it was most likely a transient NDIF or network hang.
+- **Stage 0** (commit faa7cd8): `submission/main.py` gives each request 300 s and up to 3 attempts, within a 13-minute budget per dataset. A batch that keeps failing is skipped, and the run always exits 0 via `os._exit(0)` after writing. `LENS_QUESTIONS_PER_REQUEST` sets the batch size. Tested with 4 per request: 3 requests, 108 s, 0.60.
+- **Stage 1** (commit 4591423):
+  - `research/make_questions.py`: 434 questions in 8 families (`sport`, `instrument`, `country`, `arith1`, `shift1`, `hop_country`, `arith2`, `shift2`), each in chat and plain form.
+  - `research/probe_visits.py`: 48 visits × 4 readouts × the last 12 positions, returning option-token ranks.
+  - `research/analyze_probe.py` and `research/score.py`.
+- **Leaderboard watch:** added `research/leaderboard.py`, [leaderboard.md](leaderboard.md) and this folder.
+- **Cleanup outside the repo:** removed the old Recurse hooks from `~/.claude/settings.json` and emptied `~/.claude/CLAUDE.md`.
+
+## Found
+
+- **Our first leaderboard submission scored 0.660,** tied with the starter. It was the Cursor branch's dual-position lens, which scored 0.90 on practice.
+- **Leaderboard noise is about ±0.035** for the starter's visits.
+- **Plain-format prompts read at the subject token,** not at the final `.`.
+
+## Open
+
+- **Probe:** running as 3 shards (`research/data/probe-{0,1,2}.log`); 17 of 55 batches were done at 02:25 UTC. Then run `research/analyze_probe.py` and choose the Stage 2 lens.
+- **Cursor branch:** `cursor/optimized-inkling-lens-v1-9655` exists locally and on origin. It picks its second read position with a word list ("day", "month", …), which may count as a rule keyed on the prompt's text.
