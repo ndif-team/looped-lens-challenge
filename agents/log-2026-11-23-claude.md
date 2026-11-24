@@ -25,3 +25,18 @@ Branch `version1`, from `main` at 6668f34. All work below is on that branch.
 
 - **Probe:** running as 3 shards (`research/data/probe-{0,1,2}.log`); 17 of 55 batches were done at 02:25 UTC. Then run `research/analyze_probe.py` and choose the Stage 2 lens.
 - **Cursor branch:** `cursor/optimized-inkling-lens-v1-9655` exists locally and on origin. It picks its second read position with a word list ("day", "month", …), which may count as a rule keyed on the prompt's text.
+
+## Later (2026-11-24 UTC): Stage 2, lens v1
+
+- **Probe:** finished, 434 questions, as 3 parallel shards (`--shard i/n`).
+- **The decision** is in [findings.md](findings.md): read the question's `?` for calendar intermediates; use fewer readouts.
+- **Lens v1** in `submission/main.py`: the starter's logit lens at visits 44, 45 and 47 (read position) and visit 46 (the question's last `?`).
+- **Results:**
+  - dev set through `main.py`: chat 0.711 (the probe predicted 0.703), plain 0.393; the starter scores 0.550 and 0.382;
+  - practice: 0.90 by `submit.py --local`, and again with 3 questions per request;
+  - 434 questions took 280 s.
+- **Fix:** `main.py` now creates `$OUTPUT_DIR` if it is missing.
+- **Open:**
+  - ask the organizers whether reading at the `?` position is fine;
+  - plain-format prompts are still weak;
+  - arithmetic is unreadable without training (Stage 3).

@@ -21,5 +21,23 @@ What we know, with the evidence for each claim. Newest at the top of each sectio
 
 ## Lenses
 
-- **Starter logit lens** (active block, read position, visits 12, 24, 34–36, 43–47): 0.60 on practice and 0.662 on the leaderboard.
-- **Plain-format prompts** score 0 at the read position (the final `.`) on our first probe batch. At the subject's last token, about 8 from the end, they score 1.00 for sport questions. Being checked on the full dev set.
+Evidence for this section:
+- data: `research/data/probe/`, from the full probe of the dev set (434 questions, 48 visits × 4 readouts × the last 12 positions);
+- analysis: `research/analyze_probe.py`;
+- an ad-hoc search over designs on 2026-11-24.
+
+Pass rates are by exact match, over the mean of families.
+
+- **The starter on our dev set (chat):** 0.550. By family: arith1 0.13, arith2 0.53, country 0.80, hop_country 0.90, instrument 0.63, shift1 0.07, shift2 0.33, sport 1.00. In plain format it scores 0.382.
+- **The question's `?` is where calendar answers live.**
+  - For "What is the day after Friday?", the read position (`<|message_model|>`) gives 0.03–0.10 under every readout.
+  - At the `?` token, visits 45 and 46 give **1.00** under the active, mixed and MoE-input readouts alike.
+  - The instruction that follows (" Answer in one word.") washes the answer out.
+- **At the read position, choosing the readout or the visits does not help.** A greedy choice of up to 10 readouts at the read position scores 0.458 on held-out prompts, against 0.462 for the starter. The gain has to come from position.
+- **The `final_input`-mixed readout is faithful but not better here.** Late in the network it fills with what the model will *write* next (`<|content_thinking|>`), which is no intermediate. Active-block and MoE-input readouts show more content.
+- **Arithmetic intermediates are not readable** by any of the 4 readouts at any of the 12 positions. The best single config reaches 0.13 on arith1 (chat). This needs a trained lens or a different idea.
+- **Two-hop country questions are easy** (0.90–1.00 at the read position). The intermediate, the country, shows up next to the answer.
+- **Plain format:** the read position is the final `.`. The subject's last token and the `?` read much better.
+- **Search over late visits (40–47), active lens:** visits 44, 45 and 47 at the read position plus 46 at the `?` maximize the worse of the two held-out halves. The halves score 0.676 and 0.727, all chat prompts 0.703, against 0.550 for the starter.
+  - By family: shift1 1.00, instrument 0.79, country 0.93, hop_country 1.00, sport 1.00, arith2 0.47, shift2 0.30, arith1 0.13.
+  - This is lens v1 (`submission/main.py`, branch `version1`).
