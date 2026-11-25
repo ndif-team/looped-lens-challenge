@@ -34,7 +34,7 @@ MODEL_ID = os.environ["MODEL_ID"]
 # ascending order: a trace reads the model in the order the model runs.
 VISITS = [12, 24, 34, 35, 36, 43, 44, 45, 46, 47]
 TOP = 10  # tokens reported per visit
-QUESTIONS_PER_REQUEST = 25  # one NDIF request runs this many forward passes
+QUESTIONS_PER_REQUEST = 25  # one NDIF request runs this many questions, in one forward pass
 
 assert VISITS == sorted(set(VISITS)) and len(VISITS) <= questions.MAX_LAYERS, VISITS
 
@@ -48,23 +48,25 @@ addresses = [lenses.visit_address(model.config.text_config, visit) for visit in 
 readouts = {}
 for start in range(0, len(items), QUESTIONS_PER_REQUEST):
     batch = items[start : start + QUESTIONS_PER_REQUEST]
-    inputs = [(torch.tensor([item.ids]), item.position) for item in batch]
+    # Positions are counted from the end: the questions share one forward pass, padded on the left.
+    inputs = [(torch.tensor([item.ids]), item.position - len(item.ids)) for item in batch]
 
-    # One request: everything in this block runs on NDIF, one forward pass per question. Only
-    # the ten best token ids per visit come back.
+    # One request: everything in this block runs on NDIF, in one forward pass. Each invoke is one
+    # question and sees only its own row. Only the ten best token ids per visit come back.
     best = []
     with model.session(remote=True):
-        for ids, position in inputs:
-            with model.trace({"input_ids": ids, "attention_mask": torch.ones_like(ids)}) as tracer:
-                per_visit = []
-                for layer, run in addresses:
-                    # A looped layer runs three times in this one forward pass; tracer.iter
-                    # picks which of its runs the next read is taken from.
-                    for _ in tracer.iter[run]:
-                        h = lenses.layers(model)[layer].input[0, position]  # the state entering the visit: [hidden]
-                        scores = lenses.logit_lens(model, h)
-                        per_visit.append(scores.float().topk(TOP).indices.cpu())
-            best.append(per_visit)
+        with model.trace() as tracer:
+            for ids, position in inputs:
+                with tracer.invoke({"input_ids": ids, "attention_mask": torch.ones_like(ids)}):
+                    per_visit = []
+                    for layer, run in addresses:
+                        # A looped layer runs three times in this one forward pass; tracer.iter
+                        # picks which of its runs the next read is taken from.
+                        for _ in tracer.iter[run]:
+                            h = lenses.layers(model)[layer].input[0, position]  # the state entering the visit: [hidden]
+                            scores = lenses.logit_lens(model, h)
+                            per_visit.append(scores.float().topk(TOP).indices.cpu())
+                    best.append(per_visit)
         nnsight.save(best)
 
     for item, per_visit in zip(batch, best):
