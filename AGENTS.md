@@ -177,12 +177,15 @@ The README states the rules. These are the consequences for a lens:
 
 ## Making an entry efficient
 
-- **One forward pass per question.** Read every layer visit you need in that
-  one pass, in ascending order: a trace follows the order the model runs in, and
+- **One forward pass per request.** Give each question its own `tracer.invoke`
+  in one `model.trace()`: the questions then run as one batch. The starter sends
+  25 questions per request. Read every layer visit you need in that pass, in
+  ascending order: a trace follows the order the model runs in, and
   `tracer.iter` picks which run of a looped layer is read.
-- **Many questions per request.** Wrap a batch of traces in one
-  `model.session(remote=True)`, so that they share one request and one wait in
-  NDIF's queue. The starter sends 25 questions per request.
+- **Count positions from the end.** The shorter questions of a batch are padded
+  on the left, so `-1` is every question's last token and a position counted
+  from the start is not the same token. A mean or a slice over the token axis
+  includes the padding unless you skip it.
 - **A failed request ends the run.** The starter does not retry, so an error in
   any request fails that dataset and the submission. Keep a request small enough
   to finish reliably, and retry it yourself if you want to survive a passing
