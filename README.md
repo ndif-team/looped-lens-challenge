@@ -192,6 +192,11 @@ the rules in full. In short:
 
   Winning submissions are audited, and one that does not fit the spirit of the
   competition is disqualified.
+- **A submission under review is marked.** A warning sign beside it on the
+  leaderboard, "Potentially invalid: flagged for review", means the organizers
+  are checking whether it is valid. It keeps its place meanwhile. If they left
+  a note, its team reads it under the submission in "Your submissions" on the
+  leaderboard's page and in `python submit.py --status`.
 - **Submissions are made public.** By submitting you agree that your
   submission, its code and its associated materials are published under the MIT
   license, during and after the competition, and that the organizers may
@@ -251,6 +256,9 @@ live competition. What is specific to this one:
   team its attempt back when a run failed through no fault of theirs, and
   shows them the reason. `remove` and `remove-team` delete for good: each
   lists what it will delete and asks for the id or the name to be typed.
+- **Reviewing a submission.** `python manage.py flag ID "note"` marks one as
+  possibly invalid while it is looked into, as the rules above describe. The
+  note is optional and only its team is shown it. `unflag` clears the mark.
 - **Phases.** `python manage.py new-phase` starts the next phase. Submissions
   made from then on are ranked on a new board, which starts empty, the
   reference row included; the page keeps a button for each earlier phase. A

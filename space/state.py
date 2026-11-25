@@ -77,6 +77,7 @@ class Submission:
     results: dict | None = None  # the evaluator's envelope, once it has been scored
     error: str | None = None  # set when the pipeline itself broke
     excused: str | None = None  # an organizer's reason why this failure does not count against the team
+    flagged: str | None = None  # set while the organizers review it: their note to its team, "" when they left none
 
     @classmethod
     def from_item(cls, item: dict) -> "Submission":
@@ -91,6 +92,7 @@ class Submission:
             results=json.loads(item["results"]) if item.get("results") else None,
             error=item.get("error"),
             excused=item.get("excused"),
+            flagged=item.get("flagged"),
         )
 
 
@@ -243,6 +245,20 @@ class State:
                 raise
             return False
         return True
+
+    def flag(self, submission_id: str, note: str = "") -> None:
+        """Mark a submission as under review, with a note for its team if there
+        is one. It keeps its place on the board, where it carries a warning."""
+        self.table.update_item(
+            Key={"pk": SUBMISSION, "sk": submission_id},
+            UpdateExpression="SET flagged = :note",
+            ConditionExpression="attribute_exists(pk)",
+            ExpressionAttributeValues={":note": note},
+        )
+
+    def unflag(self, submission_id: str) -> None:
+        """Take the review mark off a submission."""
+        self.table.update_item(Key={"pk": SUBMISSION, "sk": submission_id}, UpdateExpression="REMOVE flagged", ConditionExpression="attribute_exists(pk)")
 
     def progress(self, submission_id: str) -> dict | None:
         """The latest progress event a running submission reported, if any."""

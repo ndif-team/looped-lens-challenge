@@ -197,15 +197,17 @@ class Client:
 
 def describe(submission: dict) -> str:
     """One line saying where a submission is."""
-    status = submission["status"]
+    line = status = submission["status"]
     if status == "queued":
         ahead = submission.get("queued_ahead") or 0
-        return f"queued ({ahead} ahead)" if ahead else "queued (next up)"
-    if status == "running" and (progress := submission.get("progress")):
-        return f"running {progress['dataset']} ({progress['index']}/{progress['total']})"
-    if status == "failed":
-        return f"failed: {submission.get('error') or 'no reason recorded'}"
-    return status
+        line = f"queued ({ahead} ahead)" if ahead else "queued (next up)"
+    elif status == "running" and (progress := submission.get("progress")):
+        line = f"running {progress['dataset']} ({progress['index']}/{progress['total']})"
+    elif status == "failed":
+        line = f"failed: {submission.get('error') or 'no reason recorded'}"
+    if submission.get("flagged"):  # the organizers are reviewing it
+        line += "  [potentially invalid: flagged for review" + (f": {note}]" if (note := submission.get("flag_note")) else "]")
+    return line
 
 
 def wait(client: Client, submission_id: str, columns: list[str]) -> int:

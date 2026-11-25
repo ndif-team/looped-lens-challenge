@@ -398,6 +398,25 @@ def test_a_new_phase_has_a_board_of_its_own(client, state, monkeypatch):
     assert client.get("/api/leaderboard?phase=3").status_code == 404
 
 
+def test_a_flagged_submission_keeps_its_place_and_only_its_team_reads_the_note(client, state, monkeypatch):
+    monkeypatch.setattr(space_app, "BOARD_CACHE_SECONDS", -1)  # every request works the board out again
+    created = submit(client).json()
+    score(state, created["id"], 0.9)
+    mine = lambda: client.get(f"/api/submissions/{created['id']}", headers={"X-NDIF-API-Key": "key-ada"}).json()
+    assert client.get("/api/leaderboard").json()["rows"][0]["flagged"] is False and mine()["flagged"] is False
+
+    state.flag(created["id"], "it reads no activations")
+    public = client.get("/api/leaderboard")
+    assert [(row["rank"], row["flagged"]) for row in public.json()["rows"]] == [(1, True)]
+    assert "it reads no activations" not in public.text
+    assert (mine()["flagged"], mine()["flag_note"]) == (True, "it reads no activations")
+
+    state.flag(created["id"])  # a flag needs no note
+    assert (mine()["flagged"], mine()["flag_note"]) == (True, None)
+    state.unflag(created["id"])
+    assert client.get("/api/leaderboard").json()["rows"][0]["flagged"] is False and mine()["flagged"] is False
+
+
 def test_rank_key_handles_direction_and_missing_metrics(competition):
     competition.leaderboard.rank_by = ["error", "accuracy"]
     competition.leaderboard.lower_is_better = ["error"]

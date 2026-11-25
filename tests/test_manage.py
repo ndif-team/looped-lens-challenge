@@ -56,6 +56,25 @@ def test_only_a_failed_submission_can_be_excused(operate, client, state):
     assert code == 1 and "there is no submission" in said
 
 
+def test_flag_marks_a_submission_and_unflag_clears_it(operate, client, state, competition):
+    created = submit(client).json()
+    score(state, created["id"], 0.9)
+    listed = lambda: manage.one_line(state.submission(created["id"]), competition)
+
+    code, said = operate(manage.flag, id=created["id"], note="it reads no activations")
+    assert code == 0 and "of Ada's Team is flagged for review" in said
+    assert state.submission(created["id"]).flagged == "it reads no activations" and listed().endswith("(flagged: it reads no activations)")
+    code, _ = operate(manage.flag, id=created["id"], note="")  # flagged again, this time with no note
+    assert code == 0 and state.submission(created["id"]).flagged == "" and listed().endswith("(flagged)")
+
+    code, said = operate(manage.unflag, id=created["id"])
+    assert code == 0 and "is no longer flagged" in said and state.submission(created["id"]).flagged is None and "flagged" not in listed()
+    code, said = operate(manage.unflag, id=created["id"])
+    assert code == 1 and "is not flagged" in said
+    code, said = operate(manage.flag, id="20260101T000000-00000000", note="")
+    assert code == 1 and "there is no submission" in said and state.submissions() == [state.submission(created["id"])]
+
+
 def test_remove_deletes_the_record_and_every_file(operate, client, state, competition):
     kept, gone = submit(client, key="key-bob", team="Bob").json(), submit(client).json()
     for created in (kept, gone):

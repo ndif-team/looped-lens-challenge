@@ -8,6 +8,8 @@
     python manage.py logs ID               print a submission's runner and evaluator logs
     python manage.py cancel ID             stop a submission and free its slot
     python manage.py excuse ID WHY         stop a failed submission counting against its team's limit
+    python manage.py flag ID [NOTE]        mark a submission as possibly invalid, under review
+    python manage.py unflag ID             take that mark off
     python manage.py remove ID             delete a submission: its record and its files
     python manage.py rename-team NAME NEW  rename a team, on its past submissions too
     python manage.py remove-team NAME      delete a team and every submission it made
@@ -263,7 +265,8 @@ def one_line(s, competition: comp.Competition) -> str:
         note = f"{primary}={s.results['metrics'][primary]:.4f}"
     else:
         note = (board.failure(s, competition) or "").split("\n")[0] + (" (excused)" if s.excused else "")
-    return f"{s.submitted_at[:19]}  {s.id}  {s.status:<10}  {s.team}  <{s.email}>  {note}"
+    flag = "" if s.flagged is None else f"  (flagged: {s.flagged})" if s.flagged else "  (flagged)"
+    return f"{s.submitted_at[:19]}  {s.id}  {s.status:<10}  {s.team}  <{s.email}>  {note}{flag}"
 
 
 def submissions(competition: comp.Competition, args) -> int:
@@ -347,6 +350,28 @@ def excuse(competition: comp.Competition, args) -> int:
     if not store.excuse(args.id, args.reason):
         sys.exit(f"{args.id} is {submission.status}: only a failed submission can be excused")
     print(f"  {args.id} excused: it no longer counts against the limit of {submission.team}")
+    return 0
+
+
+def flag(competition: comp.Competition, args) -> int:
+    """Mark a submission as possibly invalid while the organizers review it. It
+    keeps its place on the board, where everyone sees a warning beside it. Its
+    team is shown the note as well, when one is given."""
+    store, _ = deployed_state(competition)
+    submission = found(store, args.id)
+    store.flag(args.id, args.note)
+    print(f"  {args.id} of {submission.team} is flagged for review")
+    return 0
+
+
+def unflag(competition: comp.Competition, args) -> int:
+    """Take the review mark off a submission."""
+    store, _ = deployed_state(competition)
+    submission = found(store, args.id)
+    if submission.flagged is None:
+        sys.exit(f"{args.id} is not flagged")
+    store.unflag(args.id)
+    print(f"  {args.id} of {submission.team} is no longer flagged")
     return 0
 
 
@@ -447,11 +472,14 @@ def main() -> int:
     deploying = commands.add_parser("deploy")
     deploying.add_argument("--stack", action="store_true", help="only build the images and deploy the AWS stack")
     deploying.add_argument("--space", action="store_true", help="only publish the Space")
-    for name in ("logs", "cancel", "remove"):
+    for name in ("logs", "cancel", "remove", "unflag"):
         commands.add_parser(name).add_argument("id", help="a submission id")
     excusing = commands.add_parser("excuse")
     excusing.add_argument("id", help="a failed submission's id")
     excusing.add_argument("reason", help="why it was not the team's doing; the team is shown this")
+    flagging = commands.add_parser("flag")
+    flagging.add_argument("id", help="a submission id")
+    flagging.add_argument("note", nargs="?", default="", help="what its team is told about why; optional")
     renaming = commands.add_parser("rename-team")
     renaming.add_argument("name", help="the team's name now")
     renaming.add_argument("new", help="the name to give it")

@@ -209,6 +209,20 @@
   .state.running, .state.evaluating { background: var(--ink-mid); }
   .state.scored { background: var(--ink-blue); }
 
+  /* A submission the organizers are reviewing carries a warning sign. What it means shows over the
+     cell on hover, and on focus for a keyboard or a touch. */
+  .flag {
+    display: inline-block; width: 1.05em; height: 1.05em; margin-left: .45em; vertical-align: -.16em; cursor: help;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 4.5 2.8 20.2h18.4z' fill='%23d97706' stroke='%23d97706' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M11 9.2h2v5.6h-2zm0 7.2h2v2h-2z' fill='%23fff'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  .board td.name, .mine td.status { position: relative; }
+  .flag::after {
+    content: attr(aria-label); position: absolute; left: 0; bottom: calc(100% - 8px); z-index: 5; width: max-content; max-width: 16rem;
+    padding: 6px 10px; border-radius: 8px; background: var(--fg); color: var(--bg);
+    font: 400 .8125rem/1.35 var(--sans); white-space: normal; opacity: 0; pointer-events: none; transition: opacity .15s;
+  }
+  .flag:hover::after, .flag:focus::after { opacity: 1; }
+  .flag-note { padding: .7rem 1rem; border-radius: 10px; background: var(--tint); font-size: .875rem; color: var(--fg); }
   .log { margin: 0; padding: .85rem 1rem; border-radius: 10px; background: var(--tint); max-height: 18rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 400 .8125rem/1.6 var(--mono); color: var(--fg); }
   .problem { margin-top: 1.5rem; color: var(--fg); }
 
@@ -364,6 +378,10 @@ const others = () => config.columns.filter((name) => name !== primary());
 // A metric as a column head: "pass_rate" reads "Pass rate".
 const title = (name) => { const words = String(name ?? "").replace(/_/g, " "); return words.charAt(0).toUpperCase() + words.slice(1); };
 
+// The sign on a submission the organizers are reviewing.
+const FLAGGED = "Potentially invalid: flagged for review";
+const flag = () => el("span", { class: "flag", role: "img", tabindex: "0", "aria-label": FLAGGED });
+
 function breakdown(rowsOfBreakdown) {
   if (!rowsOfBreakdown.length) return el("div", { class: "panel" }, el("p", {}, "No breakdown was recorded."));
   const names = [...new Set(rowsOfBreakdown.flatMap((row) => Object.keys(row.metrics)))];
@@ -429,7 +447,7 @@ function renderBoard() {
     const tags = [row.baseline ? "Baseline" : row.best ? null : "Earlier submission", ...Object.values(row.fields)].filter(Boolean);
     body.append(el("tr", { class: kinds, style: `--i:${i}`, tabindex: "0", "aria-expanded": String(opened), onclick: toggle, onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } } },
       el("td", { class: "rank" }, row.rank ? el("span", { class: "disc" }, row.rank) : null),
-      el("td", { class: "name" }, row.team, tags.length ? el("small", {}, tags.join(", ")) : null),
+      el("td", { class: "name" }, row.team, row.flagged ? flag() : null, tags.length ? el("small", {}, tags.join(", ")) : null),
       el("td", { class: "when" }, when(row.submitted_at)),
       el("td", { class: "time num" }, duration(row.seconds)),
       others().map((name) => el("td", { class: "other num" }, number(row.metrics[name]))),
@@ -480,12 +498,14 @@ function renderMe(me) {
       el("thead", {}, el("tr", {}, el("th", {}, "Status"), el("th", {}, "Submitted"), el("th", {}, "Notes"), el("th", { class: "num" }, title(primary())))),
       el("tbody", {}, me.submissions.length ? me.submissions.flatMap((s) => [
         el("tr", {},
-          el("td", { class: "status" }, el("i", { class: "state " + s.status }), describe(s)),
+          el("td", { class: "status" }, el("i", { class: "state " + s.status }), describe(s), s.flagged ? flag() : null),
           el("td", { class: "when" }, when(s.submitted_at)),
           el("td", { class: "detail" }, Object.values(s.fields).join(", ")),
           el("td", { class: "score num" }, s.results ? number(s.results.metrics[primary()]) : "—")),
         // Why a submission failed gets the full width of the table, under its row.
         s.error ? el("tr", { class: "reason" }, el("td", { colspan: "4" }, el("pre", { class: "log" }, s.error))) : null,
+        // So does what the organizers wrote when they flagged it.
+        s.flag_note ? el("tr", { class: "reason" }, el("td", { colspan: "4" }, el("p", { class: "flag-note" }, `Flagged for review: ${s.flag_note}`))) : null,
       ]) :
         el("tr", {}, el("td", { colspan: "4" }, "No submissions yet.")))));
 }

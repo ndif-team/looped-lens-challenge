@@ -90,6 +90,8 @@ def describe(submission: Submission, competition: Competition, *, progress: dict
         "seconds": submission.report["seconds"] if submission.report else None,
         "results": public_results(submission.results, competition) if submission.status == SCORED else None,
         "error": failure(submission, competition),
+        "flagged": submission.flagged is not None,
+        "flag_note": submission.flagged or None,  # the organizers' note, which only the team is shown
     }
 
 
@@ -155,6 +157,7 @@ def leaderboard(submissions: list[Submission], competition: Competition) -> list
                 "seconds": submission.report["seconds"] if submission.report else None,
                 "baseline": baseline,
                 "best": best,
+                "flagged": submission.flagged is not None,
                 "rank": rank if best and not baseline else None,
                 **public_results(submission.results, competition),
             }
