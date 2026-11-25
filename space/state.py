@@ -78,6 +78,7 @@ class Submission:
     error: str | None = None  # set when the pipeline itself broke
     excused: str | None = None  # an organizer's reason why this failure does not count against the team
     flagged: str | None = None  # set while the organizers review it: their note to its team, "" when they left none
+    withdrawn: str | None = None  # when its team took it off the board; it is kept, and still counts against the limit
 
     @classmethod
     def from_item(cls, item: dict) -> "Submission":
@@ -93,6 +94,7 @@ class Submission:
             error=item.get("error"),
             excused=item.get("excused"),
             flagged=item.get("flagged"),
+            withdrawn=item.get("withdrawn"),
         )
 
 
@@ -259,6 +261,16 @@ class State:
     def unflag(self, submission_id: str) -> None:
         """Take the review mark off a submission."""
         self.table.update_item(Key={"pk": SUBMISSION, "sk": submission_id}, UpdateExpression="REMOVE flagged", ConditionExpression="attribute_exists(pk)")
+
+    def withdraw(self, submission_id: str) -> None:
+        """Take a submission off the board at its team's request. Nothing is
+        deleted: the record and the files stay, marked with when it happened."""
+        self.table.update_item(
+            Key={"pk": SUBMISSION, "sk": submission_id},
+            UpdateExpression="SET withdrawn = :now",
+            ConditionExpression="attribute_exists(pk)",
+            ExpressionAttributeValues={":now": utcnow().isoformat(timespec="seconds")},
+        )
 
     def progress(self, submission_id: str) -> dict | None:
         """The latest progress event a running submission reported, if any."""

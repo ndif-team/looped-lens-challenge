@@ -266,7 +266,8 @@ def one_line(s, competition: comp.Competition) -> str:
     else:
         note = (board.failure(s, competition) or "").split("\n")[0] + (" (excused)" if s.excused else "")
     flag = "" if s.flagged is None else f"  (flagged: {s.flagged})" if s.flagged else "  (flagged)"
-    return f"{s.submitted_at[:19]}  {s.id}  {s.status:<10}  {s.team}  <{s.email}>  {note}{flag}"
+    withdrawn = "  (withdrawn)" if s.withdrawn else ""
+    return f"{s.submitted_at[:19]}  {s.id}  {s.status:<10}  {s.team}  <{s.email}>  {note}{flag}{withdrawn}"
 
 
 def submissions(competition: comp.Competition, args) -> int:

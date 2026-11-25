@@ -75,6 +75,14 @@ def test_flag_marks_a_submission_and_unflag_clears_it(operate, client, state, co
     assert code == 1 and "there is no submission" in said and state.submissions() == [state.submission(created["id"])]
 
 
+def test_the_listing_marks_a_withdrawn_submission(client, state, competition):
+    created = submit(client).json()
+    score(state, created["id"], 0.9)
+    assert "withdrawn" not in manage.one_line(state.submission(created["id"]), competition)
+    assert client.delete(f"/api/submissions/{created['id']}", headers=ADA).status_code == 200
+    assert manage.one_line(state.submission(created["id"]), competition).endswith("accuracy=0.9000  (withdrawn)")
+
+
 def test_remove_deletes_the_record_and_every_file(operate, client, state, competition):
     kept, gone = submit(client, key="key-bob", team="Bob").json(), submit(client).json()
     for created in (kept, gone):

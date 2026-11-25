@@ -417,6 +417,36 @@ def test_a_flagged_submission_keeps_its_place_and_only_its_team_reads_the_note(c
     assert client.get("/api/leaderboard").json()["rows"][0]["flagged"] is False and mine()["flagged"] is False
 
 
+def test_a_team_withdraws_a_finished_submission_for_good(client, state):
+    ada, bob = {"X-NDIF-API-Key": "key-ada"}, {"X-NDIF-API-Key": "key-bob"}
+    ranked = lambda: [(row["id"], row["rank"]) for row in client.get("/api/leaderboard").json()["rows"]]
+    worse = submit(client).json()["id"]
+    score(state, worse, 0.5)
+    better = submit(client).json()["id"]
+    score(state, better, 0.9)
+    running = submit(client).json()["id"]
+    assert ranked() == [(better, 1), (worse, None)]
+
+    # Only its own team may, and only once it has finished.
+    assert client.delete(f"/api/submissions/{better}", headers=bob).status_code == 404
+    assert client.delete(f"/api/submissions/{better}").status_code == 401
+    refused = client.delete(f"/api/submissions/{running}", headers=ada)
+    assert refused.status_code == 409 and "once it has finished" in refused.json()["detail"]
+    assert ranked() == [(better, 1), (worse, None)]
+
+    assert client.delete(f"/api/submissions/{better}", headers=ada).json() == {"id": better}
+    assert ranked() == [(worse, 1)]  # at once, and the team's next best takes its place
+    me = client.get("/api/me", headers=ada).json()
+    assert {s["id"] for s in me["submissions"]} == {worse, running}
+    assert me["rate_limit"]["used"] == 3  # it still counts
+    assert client.get(f"/api/submissions/{better}", headers=ada).status_code == 404
+    assert client.delete(f"/api/submissions/{better}", headers=ada).status_code == 404
+
+    # Nothing was deleted.
+    kept = state.submission(better)
+    assert kept.withdrawn and kept.results["metrics"]["accuracy"] == 0.9 and f"submissions/{better}.zip" in state.files(better)
+
+
 def test_rank_key_handles_direction_and_missing_metrics(competition):
     competition.leaderboard.rank_by = ["error", "accuracy"]
     competition.leaderboard.lower_is_better = ["error"]

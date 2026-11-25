@@ -5,6 +5,7 @@
     GET  /api/leaderboard        a phase's scored submissions, ranked
     POST /api/submissions        submit a package            (NDIF key)
     GET  /api/submissions/{id}   one of your submissions     (NDIF key)
+    DELETE /api/submissions/{id} withdraw one of them        (NDIF key)
     GET  /api/me                 your team and its history   (NDIF key)
 
 A caller is identified by the NDIF API key in ``X-NDIF-API-Key``: NDIF says
@@ -187,18 +188,35 @@ def create_app(competition: comp.Competition, state: State, *, whoami=ndif.whoam
 
         return await run_in_threadpool(accept)
 
-    @app.get("/api/submissions/{submission_id}")
-    def one(submission_id: str, api_key: str | None = Header(None, alias="X-NDIF-API-Key")) -> dict:
+    def own(submission_id: str, api_key: str | None):
+        """One of the caller's submissions that it has not withdrawn. Raises
+        the HTTP error to send back otherwise."""
         email = identify(api_key)
         submission = state.submission(submission_id)
-        if submission is None or submission.email != email:
+        if submission is None or submission.email != email or submission.withdrawn:
             raise HTTPException(404, "no such submission for this NDIF account")
+        return submission
+
+    @app.get("/api/submissions/{submission_id}")
+    def one(submission_id: str, api_key: str | None = Header(None, alias="X-NDIF-API-Key")) -> dict:
+        submission = own(submission_id, api_key)
         return board.describe(
             submission,
             competition,
             progress=state.progress(submission.id) if submission.status == "running" else None,
             queued_ahead=queued_ahead(submission, state.submissions()) if submission.status == QUEUED else 0,
         )
+
+    @app.delete("/api/submissions/{submission_id}")
+    def withdraw(submission_id: str, api_key: str | None = Header(None, alias="X-NDIF-API-Key")) -> dict:
+        """Take one of the caller's finished submissions off the board and out
+        of its own list, for good. It is kept, and still counts against the limit."""
+        submission = own(submission_id, api_key)
+        if submission.status in IN_FLIGHT:
+            raise HTTPException(409, f"this submission is {submission.status}; it can be withdrawn once it has finished")
+        state.withdraw(submission.id)
+        board_cache["at"] = 0.0  # the board is worked out again on its next request
+        return {"id": submission.id}
 
     @app.get("/api/me")
     def me(api_key: str | None = Header(None, alias="X-NDIF-API-Key")) -> dict:
@@ -217,6 +235,7 @@ def create_app(competition: comp.Competition, state: State, *, whoami=ndif.whoam
                     queued_ahead=queued_ahead(s, everyone),
                 )
                 for s in reversed(mine)
+                if not s.withdrawn
             ],
         }
 

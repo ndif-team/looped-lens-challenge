@@ -200,6 +200,9 @@
   .mine td.status { color: var(--fg); font-weight: 500; }
   .mine td.when, .mine td.detail { color: var(--fg3); }
   .mine td.score { color: var(--fg); }
+  .mine td.remove { width: 1%; padding: 10px 0 0 10px; }
+  .mine td.remove button { display: block; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--fg3); font-size: 1.125rem; line-height: 1; cursor: pointer; transition: background-color .18s, color .18s; }
+  .mine td.remove button:hover { background: var(--tint); color: var(--fg); }
   .mine tbody tr.reason { border-top: 0; }
   .mine tr.reason td { padding: 0 0 16px; }
 
@@ -282,7 +285,9 @@
     .mine td { padding: 0; }
     .mine td.status { grid-column: 1; grid-row: 1; }
     .mine td.score { grid-column: 2; grid-row: 1; }
-    .mine td.when, .mine td.detail { grid-column: 1 / -1; }
+    .mine td.when { grid-column: 1; grid-row: 2; }
+    .mine td.remove { grid-column: 2; grid-row: 2; justify-self: end; width: auto; padding: 0; margin: -1px -7px -1px 0; }
+    .mine td.detail { grid-column: 1 / -1; }
     .mine td.detail:empty { display: none; }
     .mine tbody tr.reason { display: block; padding: 0 0 14px; }
     .howto pre { padding: .75rem .85rem; }
@@ -495,19 +500,28 @@ function renderMe(me) {
     el("p", { class: "team" }, me.team),
     el("p", { class: "allowance" }, allowance),
     el("table", { class: "mine" },
-      el("thead", {}, el("tr", {}, el("th", {}, "Status"), el("th", {}, "Submitted"), el("th", {}, "Notes"), el("th", { class: "num" }, title(primary())))),
+      el("thead", {}, el("tr", {}, el("th", {}, "Status"), el("th", {}, "Submitted"), el("th", {}, "Notes"), el("th", { class: "num" }, title(primary())), el("th", {}))),
       el("tbody", {}, me.submissions.length ? me.submissions.flatMap((s) => [
         el("tr", {},
           el("td", { class: "status" }, el("i", { class: "state " + s.status }), describe(s), s.flagged ? flag() : null),
           el("td", { class: "when" }, when(s.submitted_at)),
           el("td", { class: "detail" }, Object.values(s.fields).join(", ")),
-          el("td", { class: "score num" }, s.results ? number(s.results.metrics[primary()]) : "—")),
+          el("td", { class: "score num" }, s.results ? number(s.results.metrics[primary()]) : "—"),
+          // A finished submission can be taken off the leaderboard by its team.
+          el("td", { class: "remove" }, ["scored", "failed"].includes(s.status) ? el("button", { type: "button", title: "Remove from the leaderboard", "aria-label": "Remove this submission from the leaderboard", onclick: () => withdraw(s) }, "×") : null)),
         // Why a submission failed gets the full width of the table, under its row.
-        s.error ? el("tr", { class: "reason" }, el("td", { colspan: "4" }, el("pre", { class: "log" }, s.error))) : null,
+        s.error ? el("tr", { class: "reason" }, el("td", { colspan: "5" }, el("pre", { class: "log" }, s.error))) : null,
         // So does what the organizers wrote when they flagged it.
-        s.flag_note ? el("tr", { class: "reason" }, el("td", { colspan: "4" }, el("p", { class: "flag-note" }, `Flagged for review: ${s.flag_note}`))) : null,
+        s.flag_note ? el("tr", { class: "reason" }, el("td", { colspan: "5" }, el("p", { class: "flag-note" }, `Flagged for review: ${s.flag_note}`))) : null,
       ]) :
-        el("tr", {}, el("td", { colspan: "4" }, "No submissions yet.")))));
+        el("tr", {}, el("td", { colspan: "5" }, "No submissions yet.")))));
+}
+
+async function withdraw(submission) {
+  if (!confirm("Remove this submission from the leaderboard?\n\nIt leaves the leaderboard and this list for good, and it still counts against your submission limit.")) return;
+  await fetch(`/api/submissions/${submission.id}`, { method: "DELETE", headers: { "X-NDIF-API-Key": document.getElementById("key").value.trim() } });
+  loadMe();
+  loadBoard();
 }
 
 // Where entering starts: the same two links as the challenge's page on ndif.us.

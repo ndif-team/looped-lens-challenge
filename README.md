@@ -49,6 +49,10 @@ lens, so these commands work before you change anything.
 A team is one NDIF account. The [leaderboard](https://ndif-looped-lens-challenge.hf.space/)
 shows each team's best submission.
 
+On the leaderboard's page, under "Your submissions", the × beside a finished
+submission takes it off the leaderboard and out of your list for good. It
+still counts against your submission limit.
+
 ## The questions
 
 A question is a prompt on which the model has to work something out that it
@@ -256,6 +260,11 @@ live competition. What is specific to this one:
   team its attempt back when a run failed through no fault of theirs, and
   shows them the reason. `remove` and `remove-team` delete for good: each
   lists what it will delete and asks for the id or the name to be typed.
+- **A team can withdraw its own finished submissions** on the page. A
+  withdrawn submission leaves the board and the team's list and still counts
+  against the team's limit. It is kept: `python manage.py submissions` lists
+  it as withdrawn, and deleting the `withdrawn` attribute from its item puts
+  it back.
 - **Reviewing a submission.** `python manage.py flag ID "note"` marks one as
   possibly invalid while it is looked into, as the rules above describe. The
   note is optional and only its team is shown it. `unflag` clears the mark.

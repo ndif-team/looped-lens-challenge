@@ -97,7 +97,8 @@ def describe(submission: Submission, competition: Competition, *, progress: dict
 
 def rate_limit(mine: list[Submission], team: str, competition: Competition, now: datetime) -> dict:
     """How much of its allowance a team has used. ``mine`` is every submission
-    the team has made, oldest first; the window is the last ``window_hours``."""
+    the team has made, the ones it withdrew included, oldest first; the window
+    is the last ``window_hours``."""
     limit = competition.submission.rate_limit
     cutoff = (now - timedelta(hours=limit.window_hours)).isoformat(timespec="seconds")
     used = [s for s in mine if s.submitted_at >= cutoff and counts_against_limit(s)]
@@ -135,10 +136,11 @@ def _rank_key(metrics: dict, competition: Competition) -> tuple:
 
 
 def leaderboard(submissions: list[Submission], competition: Competition) -> list[dict]:
-    """Every scored submission, best first. ``best`` marks each team's top row;
+    """Every scored submission that its team has not withdrawn, best first.
+    ``best`` marks each team's top row;
     ``rank`` numbers the best rows of competing teams (baselines are shown in
     place but not ranked)."""
-    scored = [s for s in submissions if s.status == SCORED]
+    scored = [s for s in submissions if s.status == SCORED and not s.withdrawn]
     scored.sort(key=lambda s: (_rank_key(s.results["metrics"], competition), s.submitted_at))
 
     rows, seen, rank = [], set(), 0
