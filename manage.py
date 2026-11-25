@@ -16,6 +16,9 @@
     python manage.py new-phase             start the next phase, with a board of its own
     python manage.py destroy               delete the AWS stack
 
+Building and deploying read the organizers' configuration, competition.prod.yaml,
+which is not committed. The commands that work on stored submissions, from
+`submissions` to `new-phase` except `rename-team`, also run without it.
 Everything but `verify` and `build` needs AWS credentials for the account the
 competition is deployed in. Install the tools with `uv sync --group ops`.
 """
@@ -245,6 +248,12 @@ def destroy(competition: comp.Competition, args) -> int:
 
 
 # ----------------------------------------------------------------- operate --
+
+# The commands that only find the deployed stack and work on what is stored in it. All they take
+# from the configuration is the competition's name and region, and the participants' file has
+# both, so they also run where the organizers' file is absent. `rename-team` is left out: it
+# warns when the team is named in the organizers' file.
+ON_WHAT_IS_STORED = ("submissions", "logs", "cancel", "excuse", "flag", "unflag", "remove", "remove-team", "new-phase")
 
 
 def deployed_state(competition: comp.Competition):
@@ -489,9 +498,13 @@ def main() -> int:
     renaming.add_argument("new", help="the name to give it")
     commands.add_parser("remove-team").add_argument("name", help="the team's name")
     args = parser.parse_args()
-    if not comp.PROD_FILE.is_file():
+    if comp.PROD_FILE.is_file():
+        competition = comp.load(comp.PROD_FILE)
+    elif args.command in ON_WHAT_IS_STORED:
+        competition = comp.load()  # the participants' file names the same stack
+    else:
         sys.exit(f"{comp.PROD_FILE.name} is not here. It is the organizers' configuration, which names the scored datasets and is not in the repository.")
-    return globals()[args.command.replace("-", "_")](comp.load(comp.PROD_FILE), args)
+    return globals()[args.command.replace("-", "_")](competition, args)
 
 
 if __name__ == "__main__":

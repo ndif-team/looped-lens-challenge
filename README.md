@@ -243,6 +243,10 @@ live competition. What is specific to this one:
   scored datasets and is never committed: get it from an organizer and put it
   beside `competition.yaml`. `manage.py deploy` hands it to the Space as the
   secret `LEADERBOARD_COMPETITION`, so it is not in the Space's files either.
+  A co-organizer without the file can still run the commands that work on
+  stored submissions (`submissions`, `logs`, `cancel`, `excuse`, `flag`,
+  `unflag`, `remove`, `remove-team`, `new-phase`): they take only the
+  competition's name and region, which `competition.yaml` has too.
 - **The questions are on the Hub.** The practice set is the public dataset
   named above. The scored set is the private dataset
   `NDIF/looped-lens-challenge-eval`; `python manage.py build` fetches it, so it

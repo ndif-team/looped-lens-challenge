@@ -2,10 +2,12 @@
 moto's DynamoDB and S3. Each is run the way `python manage.py <command>` runs
 it, with what the organizer would type at its question."""
 
+import sys
 from argparse import Namespace
 
 import pytest
 
+import competition as comp
 import manage
 from space import board
 from space.state import FAILED
@@ -189,3 +191,17 @@ def test_new_phase_asks_first_and_then_starts_one(operate, state):
 
     code, said = operate(manage.new_phase, typed="2")
     assert code == 0 and "Phase 2 has begun" in said and len(state.phase_starts()) == 1
+
+
+def test_commands_on_stored_submissions_run_without_the_organizers_file(monkeypatch, tmp_path):
+    monkeypatch.setattr(comp, "PROD_FILE", tmp_path / "competition.prod.yaml")  # not there
+    ran = []
+    monkeypatch.setattr(manage, "flag", lambda competition, args: ran.append((competition.name, args.id, args.note)) or 0)
+    monkeypatch.setattr(sys, "argv", ["manage.py", "flag", "20260101T000000-00000000"])
+    assert manage.main() == 0 and ran == [(comp.load().name, "20260101T000000-00000000", "")]
+
+    # What is built and deployed comes from the organizers' file, so those still ask for it.
+    for command in (["deploy"], ["build"], ["rename-team", "Ada", "Bea"]):
+        monkeypatch.setattr(sys, "argv", ["manage.py", *command])
+        with pytest.raises(SystemExit, match="competition.prod.yaml is not here"):
+            manage.main()
