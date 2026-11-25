@@ -83,6 +83,20 @@ def test_the_listing_marks_a_withdrawn_submission(client, state, competition):
     assert manage.one_line(state.submission(created["id"]), competition).endswith("accuracy=0.9000  (withdrawn)")
 
 
+def test_cancel_stops_a_run_and_deletes_the_keys_kept_for_it(operate, client, state, monkeypatch):
+    monkeypatch.setattr(manage, "deployed_state", lambda competition: (state, {"StateMachine": state.state_machine}))
+    created = submit(client).json()
+    keys, package = f"credentials/{created['id']}.json", f"submissions/{created['id']}.zip"
+    assert keys in state.files(created["id"])
+
+    code, said = operate(manage.cancel, id=created["id"])
+    assert code == 0 and f"{created['id']} cancelled" in said
+    cancelled = state.submission(created["id"])
+    assert (cancelled.status, cancelled.error) == (FAILED, "cancelled by the organizers")
+    assert keys not in state.files(created["id"]) and package in state.files(created["id"])
+    assert submit(client).status_code == 200  # it did not count, and the team is no longer in flight
+
+
 def test_remove_deletes_the_record_and_every_file(operate, client, state, competition):
     kept, gone = submit(client, key="key-bob", team="Bob").json(), submit(client).json()
     for created in (kept, gone):

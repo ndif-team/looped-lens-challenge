@@ -12,7 +12,8 @@ The bucket holds the files of each submission::
 
     submissions/<id>.zip          the uploaded package, kept
     credentials/<id>.json         the submitter's keys for the run; the state
-                                  machine deletes it when the run ends
+                                  machine deletes it when the run ends, and
+                                  `manage.py cancel` when it stops one
     runs/<id>/*-links.json        what each task may read and write, as links
     runs/<id>/outputs.tar.gz      what the run wrote
     runs/<id>/report.json         the runner's report

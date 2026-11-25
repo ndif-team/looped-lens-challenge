@@ -309,8 +309,9 @@ def logs(competition: comp.Competition, args) -> int:
 
 
 def cancel(competition: comp.Competition, args) -> int:
-    """Stop a submission's pipeline and mark it failed. Marked as the
-    leaderboard's doing, it does not count against the team's limit."""
+    """Stop a submission's pipeline, delete the submitter's keys kept for the
+    run, and mark it failed. Marked as the leaderboard's doing, it does not
+    count against the team's limit."""
     import boto3
     from botocore.exceptions import ClientError
 
@@ -323,6 +324,8 @@ def cancel(competition: comp.Competition, args) -> int:
         )
     except ClientError as error:
         print(f"  no running pipeline to stop ({error.response['Error']['Code']})")
+    # The pipeline deletes the submitter's keys as its last step, which a stopped one never reaches.
+    store.s3.delete_object(Bucket=store.bucket, Key=f"credentials/{args.id}.json")
     store.table.update_item(
         Key={"pk": SUBMISSION, "sk": args.id},
         UpdateExpression="SET #status = :failed, #error = :error",
