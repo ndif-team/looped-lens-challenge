@@ -171,6 +171,10 @@
   .pages .btn { min-width: 34px; padding: 0 12px; }
   .pages .btn:disabled { opacity: .35; pointer-events: none; }
   .pages span { color: var(--fg3); }
+  /* The same steps above the board, at its right, with the rows now shown. */
+  .pages.top { justify-content: flex-end; gap: .375rem; margin: -6px 0 14px; }
+  .pages.top span { margin-right: .375rem; font-size: .875rem; font-variant-numeric: tabular-nums; }
+  .pages.top .btn { width: 34px; padding: 0 0 3px; font-size: 1.5rem; }
   .board-wrap > .note { margin-top: 1.25rem; text-align: center; }
 
   /* ---------- sections under the board ---------- */
@@ -323,6 +327,7 @@
   <div class="filters" id="filters" role="group" aria-label="Choose which submissions the table shows"></div>
 
   <div class="board-wrap">
+    <nav class="pages top" id="pages-top" aria-label="Step through the board" hidden></nav>
     <table class="board arriving" id="board" aria-label="Ranked submissions"></table>
     <nav class="pages" id="pages" aria-label="Pages of the board" hidden></nav>
     <p class="note">Select a row to see its score on each dataset.</p>
@@ -461,11 +466,12 @@ function renderBoard() {
   });
   if (!shown.length) body.append(el("tr", {}, el("td", { class: "empty", colspan: String(width) }, rows.length ? "No submissions match this filter." : "No submission has been scored yet. The steps below show how to enter.")));
   document.getElementById("board").replaceChildren(head, body);
-  renderPages(pages);
+  renderPages(pages, shown.length);
 }
 
-// Under the board: the first page, the last, and the ones beside the page being read.
-function renderPages(pages) {
+// Under the board: the first page, the last, and the ones beside the page being read. Above it,
+// at its right: which rows are shown, and a step back or on.
+function renderPages(pages, count) {
   const go = (page) => () => {
     view.page = page;
     render();
@@ -481,6 +487,11 @@ function renderPages(pages) {
       button(page + 1, page, page === view.page ? { class: "btn small dark", "aria-current": "page" } : {}),
     ]),
     button("Next", view.page + 1, { disabled: view.page === pages - 1 })));
+  const first = view.page * PAGE_ROWS;
+  document.getElementById("pages-top").replaceWith(el("nav", { class: "pages top", id: "pages-top", "aria-label": "Step through the board", hidden: pages < 2 },
+    el("span", {}, `${first + 1}–${Math.min(first + PAGE_ROWS, count)} of ${count}`),
+    button("‹", view.page - 1, { disabled: view.page === 0, title: "Previous page", "aria-label": "Previous page" }),
+    button("›", view.page + 1, { disabled: view.page === pages - 1, title: "Next page", "aria-label": "Next page" })));
 }
 
 function render() { renderFilters(); renderMeta(); renderBoard(); }
