@@ -34,6 +34,11 @@ def matches(host: str, entries: list[str]) -> bool:
 
 
 def refuse(flow: http.HTTPFlow, why: str) -> None:
+    if flow.request.stream:
+        # A body over the streaming threshold (see the Dockerfile) is not read
+        # by the proxy, so the connection is dropped without an answer.
+        flow.kill()
+        return
     flow.response = http.Response.make(403, f"blocked by the competition's egress policy: {why}\n", {"Content-Type": "text/plain"})
 
 
@@ -51,8 +56,10 @@ def http_connect(flow: http.HTTPFlow) -> None:
         refuse(flow, f"{host}:{port} is not an allowed destination")
 
 
-def request(flow: http.HTTPFlow) -> None:
-    """A decrypted (or plain HTTP) request."""
+def requestheaders(flow: http.HTTPFlow) -> None:
+    """A decrypted (or plain HTTP) request, decided when its headers arrive.
+    The `request` hook runs after the body, and a body over the streaming
+    threshold has been passed on to the server by then."""
     host = flow.request.pretty_host
     if host == CERTIFICATE_HOST or matches(host, ALLOW):
         return
