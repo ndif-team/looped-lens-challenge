@@ -95,11 +95,11 @@ failed, compare what the lens wrote with the answers:
 - **Do not use the leaderboard to find errors.** A run that fails there returns
   no log, because a log could quote the hidden questions. Submit only an entry
   that passes `--local` and has run on questions of your own.
-- **A local run sends fewer requests than the leaderboard.** The practice set is
-  10 questions and a scored dataset is 90 or 100, so with the starter's 25
-  questions per request a local run never sends a second request. Before
-  submitting, run once with the batch size below 10, so that the code between
-  requests runs too.
+- **A local run can send fewer requests than the leaderboard.** The practice set
+  is 10 questions and a scored dataset is 90 or 100. The starter sends up to 100
+  questions per request, so it sends one request per dataset in both places. If
+  you lower that number, run once with it below 10 before submitting, so that
+  the code between requests runs too.
 - **A team can submit once every 6 hours.** A submission that fails on the
   entry's own error uses the attempt up; `submit.py --status` shows when the
   next one opens. A submission takes about 12 minutes, its judging is paid for
@@ -182,7 +182,8 @@ The README states the rules. These are the consequences for a lens:
   `tracer.iter` picks which run of a looped layer is read.
 - **Many questions per request.** Wrap a batch of traces in one
   `model.session(remote=True)`, so that they share one request and one wait in
-  NDIF's queue. The starter sends 25 questions per request.
+  NDIF's queue. The starter sends up to 100 questions per request, a whole
+  dataset.
 - **A failed request ends the run.** The starter does not retry, so an error in
   any request fails that dataset and the submission. Keep a request small enough
   to finish reliably, and retry it yourself if you want to survive a passing

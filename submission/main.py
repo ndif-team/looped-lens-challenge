@@ -34,7 +34,7 @@ MODEL_ID = os.environ["MODEL_ID"]
 # ascending order: a trace reads the model in the order the model runs.
 VISITS = [12, 24, 34, 35, 36, 43, 44, 45, 46, 47]
 TOP = 10  # tokens reported per visit
-QUESTIONS_PER_REQUEST = 25  # one NDIF request runs this many forward passes
+QUESTIONS_PER_REQUEST = 100  # one NDIF request runs this many forward passes
 
 assert VISITS == sorted(set(VISITS)) and len(VISITS) <= questions.MAX_LAYERS, VISITS
 
