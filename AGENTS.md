@@ -60,8 +60,8 @@ shell that has not activated `.venv` has a different `python`.
    also needs `--team "<name>"`: ask them for the name, which is 2 to 40
    characters, must not be taken, and stays with their NDIF account.
 
-**Running questions of your own.** The leaderboard runs the entry on three
-datasets, named `dataset_a`, `dataset_b` and `dataset_c`. What kind of question
+**Running questions of your own.** The leaderboard runs the entry on four
+datasets, named `dataset_a`, `dataset_b`, `dataset_c` and `dataset_d`. What kind of question
 each holds is not published, and they are not all of the practice set's kind. An
 entry that crashes on one of them fails the whole submission, with no log.
 Before submitting, write a few questions that differ from the practice ones, put
@@ -100,7 +100,7 @@ failed, compare what the lens wrote with the answers:
   questions per request a local run never sends a second request. Before
   submitting, run once with the batch size below 10, so that the code between
   requests runs too.
-- **A team can submit once every 2 hours.** A submission that fails on the
+- **A team can submit once every 6 hours.** A submission that fails on the
   entry's own error uses the attempt up; `submit.py --status` shows when the
   next one opens. A submission takes about 12 minutes, its judging is paid for
   by the organizers, and a team can have one queued or running at a time.
@@ -140,7 +140,7 @@ one line per question. The README gives both formats.
 | At most 10 tokens per readout, as text, best first | Tokens after the tenth are ignored. |
 | One line per question, every line a JSON object | The whole submission is not scored. |
 | The run exits with code 0 for every dataset | The whole submission fails. |
-| 45 minutes for the whole run, all datasets together, and 200 MB for the entry | The submission fails or is refused. |
+| 60 minutes for the whole run, all datasets together, and 200 MB for the entry | The submission fails or is refused. |
 
 A readout's entries are tokens of the model's vocabulary, written as text. The
 judge is told that each one is a single token read from one activation.

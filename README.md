@@ -68,10 +68,10 @@ There are two sets:
 - **Practice:** 10 questions with their answers, in the dataset
   [`NDIF/looped-lens-challenge-test`](https://huggingface.co/datasets/NDIF/looped-lens-challenge-test).
   `python submit.py --local` runs on these, as one dataset named `practice`.
-- **Scored:** 290 questions, which you cannot see, in three datasets. The
+- **Scored:** 390 questions, which you cannot see, in four datasets. The
   leaderboard runs your lens on each of them and shows them as Dataset A,
-  Dataset B and Dataset C. They include kinds of question that the practice
-  set does not have.
+  Dataset B, Dataset C and Dataset D. They include kinds of question that the
+  practice set does not have.
 
 These are the first phase's questions: simple tasks whose intermediate is a
 single token. Later phases add harder ones, and the final ranking mixes the
@@ -90,8 +90,8 @@ Each question your lens is given has these fields:
 ## Writing a lens
 
 The leaderboard starts `submission/main.py` once per dataset, with the dataset's
-name in `$DATASET_NAME` (`dataset_a`, `dataset_b` or `dataset_c`; `practice` in
-a local run). It reads the dataset's questions from
+name in `$DATASET_NAME` (`dataset_a`, `dataset_b`, `dataset_c` or `dataset_d`;
+`practice` in a local run). It reads the dataset's questions from
 `$DATASET_PATH/questions.jsonl`, runs the model on NDIF, and writes
 `$OUTPUT_DIR/readouts.jsonl`.
 
@@ -149,7 +149,7 @@ from a saved Hugging Face login. The leaderboard hands both to your entry as
   Nothing else;
 - packages cannot be added. A lens runs in the environment `uv sync` installs;
 - a submission is at most 200 MB;
-- a submission's run is at most 45 minutes, all datasets together. One that
+- a submission's run is at most 60 minutes, all datasets together. One that
   takes longer fails.
 
 ## Scoring
@@ -167,7 +167,9 @@ from a saved Hugging Face login. The leaderboard hands both to your entry as
    option. A tie fails.
 
 A dataset's score is the share of its questions that pass. The leaderboard ranks
-on `pass_rate`, the mean of the three datasets' scores.
+on `pass_rate`, the mean of the four datasets' scores. Dataset D was added on
+27 November 2026: a submission made before then was not run on it, and Dataset D
+counts as 0 in its mean.
 
 The judge's prompt and the scoring code are in [`final-evals/`](final-evals/).
 Two short texts in that prompt come with each question and are not in the
@@ -211,7 +213,7 @@ the rules in full. In short:
   could quote them. Find errors with `--local`, which shows everything.
 - **Only admitted accounts can submit.** A submission made with the key of an
   account that has not registered, or that is still on the waitlist, is refused.
-- **A team can submit once every 2 hours,** and can have one submission queued
+- **A team can submit once every 6 hours,** and can have one submission queued
   or running at a time. A submission that fails because the leaderboard itself
   broke does not count. `python submit.py --status` shows when the next one
   opens.
@@ -256,8 +258,8 @@ live competition. What is specific to this one:
   files those are filled from and the script that fills them.
 - **Judging costs money.** The evaluator reaches the judge model at OpenAI
   with the key in the AWS Secrets Manager secret `OPENAI_API_KEY`, which has
-  to exist in the stack's region before a deploy. A submission is 290 calls,
-  roughly 10 cents.
+  to exist in the stack's region before a deploy. A submission is 390 calls,
+  roughly 13 cents.
 - **Versions follow NDIF.** nnsight, torch and transformers are pinned to what
   NDIF runs; `python manage.py verify` checks them.
 - **Looking after submissions.** `python manage.py excuse ID "why"` gives a

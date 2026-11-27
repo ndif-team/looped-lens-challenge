@@ -24,8 +24,8 @@ datasets:
 
 # The limits a lens runs under, here as on the leaderboard.
 runner:
-  timeout_per_dataset: 2700 # seconds
-  timeout_total: 2700
+  timeout_per_dataset: 3600 # seconds
+  timeout_total: 3600
   max_output_mb: 20 # readouts for one dataset; the evaluator takes no more
 
 submission:

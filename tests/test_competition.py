@@ -22,13 +22,13 @@ def test_the_repository_holds_the_participants_config():
 @pytest.mark.skipif(not comp.PROD_FILE.is_file(), reason="the organizers' configuration is not in the repository")
 def test_the_organizers_config():
     competition, public = comp.load(comp.PROD_FILE), comp.load()
-    assert [d.name for d in competition.datasets.eval] == ["dataset_a", "dataset_b", "dataset_c"]
-    assert [d.label for d in competition.datasets.eval] == ["Dataset A", "Dataset B", "Dataset C"]  # what the leaderboard shows
+    assert [d.name for d in competition.datasets.eval] == ["dataset_a", "dataset_b", "dataset_c", "dataset_d"]
+    assert [d.label for d in competition.datasets.eval] == ["Dataset A", "Dataset B", "Dataset C", "Dataset D"]  # what the leaderboard shows
     assert {d.inputs.repo for d in competition.datasets.eval} == {d.private.repo for d in competition.datasets.eval} == {"NDIF/looped-lens-challenge-eval"}
     assert competition.runner.reveal_errors is False  # the scored questions are private
     assert competition.evaluator.secrets == ["OPENAI_API_KEY"]
     assert competition.ndif.required_tags == ["looped-lens-challenge"]  # only registered accounts may submit
-    assert (competition.submission.rate_limit.max, competition.submission.rate_limit.window_hours) == (1, 2)  # one every two hours
+    assert (competition.submission.rate_limit.max, competition.submission.rate_limit.window_hours) == (1, 6)  # one every six hours
     assert competition.submission.max_concurrent == 6
     # What the participants' file repeats has to say the same thing.
     for part in (lambda c: c.title, lambda c: c.ndif.host, lambda c: c.datasets.dev, lambda c: c.space.url, lambda c: c.leaderboard.columns):
