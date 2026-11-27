@@ -17,6 +17,7 @@ authority, which the runner fetches once at start so it can trust READ_ONLY
 connections.
 """
 
+import logging
 import os
 import re
 
@@ -34,6 +35,7 @@ def matches(host: str, entries: list[str]) -> bool:
 
 
 def refuse(flow: http.HTTPFlow, why: str) -> None:
+    logging.info("refused %s %s: %s", flow.request.method, flow.request.url, why)
     if flow.request.stream:
         # A body over the streaming threshold (see the Dockerfile) is not read
         # by the proxy, so the connection is dropped without an answer.
@@ -60,10 +62,14 @@ def requestheaders(flow: http.HTTPFlow) -> None:
     """A decrypted (or plain HTTP) request, decided when its headers arrive.
     The `request` hook runs after the body, and a body over the streaming
     threshold has been passed on to the server by then."""
-    host = flow.request.pretty_host
-    if host == CERTIFICATE_HOST or matches(host, ALLOW):
+    request = flow.request
+    # `host` is where the proxy connects. `pretty_host` is the name the request
+    # asks that server for, which the client writes freely. Each has to pass.
+    names = (request.host, request.pretty_host)
+    if names == (CERTIFICATE_HOST, CERTIFICATE_HOST):
         return
-    if not matches(host, READ_ONLY):
-        refuse(flow, f"{host} is not an allowed destination")
-    elif flow.request.method not in ("GET", "HEAD"):
-        refuse(flow, f"{host} is read-only; {flow.request.method} is not allowed")
+    for host in names:
+        if request.port not in PORTS or not matches(host, ALLOW + READ_ONLY):
+            return refuse(flow, f"{host}:{request.port} is not an allowed destination")
+        if not matches(host, ALLOW) and request.method not in ("GET", "HEAD"):
+            return refuse(flow, f"{host} is read-only; {request.method} is not allowed")
